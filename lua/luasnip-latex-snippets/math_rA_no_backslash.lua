@@ -10,9 +10,92 @@ local postfix_trig = function(match)
   return string.format("(%s)", match)
 end
 
+local latex_command_overrides
+
 local postfix_node = f(function(_, snip)
-  return string.format("\\%s ", snip.captures[1])
+  local capture = snip.captures[1] or ""
+  local override = latex_command_overrides[capture]
+  if not override then
+    override = latex_command_overrides[capture:lower()]
+  end
+  local command = override or capture
+  return string.format("\\%s ", command)
 end, {})
+
+latex_command_overrides = {
+  aa = "alpha",
+  AA = "Alpha",
+  bb = "beta",
+  BB = "Beta",
+  gg = "gamma",
+  GG = "Gamma",
+  dd = "delta",
+  DD = "Delta",
+  ee = "epsilon",
+  EE = "Epsilon",
+  hh = "eta",
+  HH = "Eta",
+  tt = "theta",
+  TT = "Theta",
+  ii = "iota",
+  II = "Iota",
+  kk = "kappa",
+  KK = "Kappa",
+  ll = "lambda",
+  LL = "Lambda",
+  mm = "mu",
+  MM = "Mu",
+  nn = "nu",
+  NN = "Nu",
+  ww = "omega",
+  WW = "Omega",
+  ph = "phi",
+  PH = "Phi",
+  ff = "phi",
+  FF = "Phi",
+  pp = "pi",
+  PP = "Pi",
+  ps = "psi",
+  PS = "Psi",
+  rr = "rho",
+  RR = "Rho",
+  ss = "sigma",
+  SS = "Sigma",
+  ta = "tau",
+  TA = "Tau",
+  cc = "chi",
+  CC = "Chi",
+  zz = "zeta",
+  ZZ = "Zeta",
+  ve = "varepsilon",
+  vf = "varphi",
+  vr = "varrho",
+  vt = "vartheta",
+}
+local vargreek_triggers = { "ve", "vf", "vr", "vt" }
+local greek_triggers =
+  { "aa", "bb", "gg", "dd", "ee", "hh", "ta", "ii", "kk", "ll", "mm", "nn", "ww", "ph", "ff", "ps", "rr", "ss", "tt", "cc", "zz" }
+
+M.latex_command_overrides = latex_command_overrides
+
+local to_case_insensitive_pattern = function(str)
+  local pattern = {}
+  for i = 1, #str do
+    local c = str:sub(i, i)
+    local lower = c:lower()
+    local upper = c:upper()
+    if lower ~= upper then
+      pattern[#pattern + 1] = string.format("[%s%s]", lower, upper)
+    else
+      pattern[#pattern + 1] = c
+    end
+  end
+  return table.concat(pattern)
+end
+
+local case_insensitive_postfix_trig = function(match)
+  return postfix_trig(to_case_insensitive_pattern(match))
+end
 
 local build_snippet = function(trig, node, match, priority, name)
   return s({
@@ -29,18 +112,19 @@ local build_with_priority = function(trig, node, priority, name)
 end
 
 local vargreek_postfix_completions = function()
-  local re = "varepsilon|varphi|varrho|vartheta"
-
-  local build = build_with_priority(postfix_trig, postfix_node, 200)
-  return vim.tbl_map(build, vim.split(re, "|"))
+  local build =
+    build_with_priority(case_insensitive_postfix_trig, postfix_node, 200, function(match)
+      return latex_command_overrides[match]
+    end)
+  return vim.tbl_map(build, vargreek_triggers)
 end
 
 local greek_postfix_completions = function()
-  local re =
-    "[aA]lpha|[bB]eta|[cC]hi|[dD]elta|[eE]psilon|[gG]amma|[iI]ota|[kK]appa|[lL]ambda|[mM]u|[nN]u|[oO]mega|[pP]hi|[pP]i|[pP]si|[rR]ho|[sS]igma|[tT]au|[tT]heta|[zZ]eta|[eE]ta"
-
-  local build = build_with_priority(postfix_trig, postfix_node, 200)
-  return vim.tbl_map(build, vim.split(re, "|"))
+  local build =
+    build_with_priority(case_insensitive_postfix_trig, postfix_node, 200, function(match)
+      return latex_command_overrides[match]
+    end)
+  return vim.tbl_map(build, greek_triggers)
 end
 
 local postfix_completions = function()

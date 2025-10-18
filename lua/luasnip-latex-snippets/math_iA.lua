@@ -7,9 +7,58 @@ function M.retrieve(is_math)
   local utils = require("luasnip-latex-snippets.util.utils")
   local pipe, no_backslash = utils.pipe, utils.no_backslash
 
+  local greek_module = require("luasnip-latex-snippets.math_rA_no_backslash")
+  local latex_overrides = greek_module.latex_command_overrides or {}
+  local greek_commands = {}
+  for _, command in pairs(latex_overrides) do
+    greek_commands[command] = command
+    local lower = command:lower()
+    if not greek_commands[lower] then
+      greek_commands[lower] = command
+    end
+  end
+
+  local accent_suffixes = {
+    bar = true,
+    und = true,
+    dot = true,
+    hat = true,
+    ora = true,
+    ola = true,
+  }
+
+  local allow_backslash = function(line_to_cursor, matched_trigger)
+    if no_backslash(line_to_cursor, matched_trigger) then
+      return true
+    end
+
+    local letters, suffix = line_to_cursor:match("\\?(%a+)%s*(%a+)$")
+    if not letters or not suffix then
+      return false
+    end
+
+    suffix = suffix:lower()
+    if not accent_suffixes[suffix] then
+      return false
+    end
+
+    return greek_commands[letters] ~= nil
+  end
+
+  local resolve_symbol = function(text)
+    if not text or text == "" then
+      return text
+    end
+    local command = greek_commands[text] or greek_commands[text:lower()]
+    if command then
+      return ("\\" .. command)
+    end
+    return text
+  end
+
   local decorator = {
     wordTrig = false,
-    condition = pipe({ is_math, no_backslash }),
+    condition = pipe({ is_math, allow_backslash }),
   }
 
   local parse_snippet = ls.extend_decorator.apply(ls.parser.parse_snippet, decorator) --[[@as function]]
@@ -18,75 +67,75 @@ function M.retrieve(is_math)
   return {
     s(
       {
-        trig = "(%a+)bar",
+        trig = "\\?(%a+)%s*bar",
         wordTrig = false,
         regTrig = true,
         name = "bar",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\overline{%s}", snip.captures[1])
+        return string.format("\\overline{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
     s(
       {
-        trig = "(%a+)und",
+        trig = "\\?(%a+)%s*und",
         wordTrig = false,
         regTrig = true,
         name = "underline",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\underline{%s}", snip.captures[1])
+        return string.format("\\underline{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
     s(
       {
-        trig = "(%a)dot",
+        trig = "\\?(%a+)%s*dot",
         wordTrig = false,
         regTrig = true,
         name = "dot",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\dot{%s}", snip.captures[1])
+        return string.format("\\dot{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
 
     s(
       {
-        trig = "(%a+)hat",
+        trig = "\\?(%a+)%s*hat",
         wordTrig = false,
         regTrig = true,
         name = "hat",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\hat{%s}", snip.captures[1])
+        return string.format("\\hat{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
     s(
       {
-        trig = "(%a+)ora",
+        trig = "\\?(%a+)%s*ora",
         wordTrig = false,
         regTrig = true,
         name = "ora",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\overrightarrow{%s}", snip.captures[1])
+        return string.format("\\overrightarrow{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
     s(
       {
-        trig = "(%a+)ola",
+        trig = "\\?(%a+)%s*ola",
         wordTrig = false,
         regTrig = true,
         name = "ola",
         priority = 100,
       },
       f(function(_, snip)
-        return string.format("\\overleftarrow{%s}", snip.captures[1])
+        return string.format("\\overleftarrow{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
 
@@ -109,7 +158,8 @@ function M.retrieve(is_math)
 
     parse_snippet({ trig = "notin", name = "not in " }, "\\not\\in "),
 
-    parse_snippet({ trig = "cc", name = "subset" }, "\\subset "),
+    -- disable for now due to  conflict with chi
+    -- parse_snippet({ trig = "cc", name = "subset" }, "\\subset "),
 
     parse_snippet({ trig = "<->", name = "leftrightarrow", priority = 200 }, "\\leftrightarrow"),
     parse_snippet({ trig = "...", name = "ldots", priority = 100 }, "\\ldots "),
