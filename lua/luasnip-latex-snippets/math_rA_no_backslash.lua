@@ -74,7 +74,7 @@ latex_command_overrides = {
 }
 local vargreek_triggers = { "ve", "vf", "vr", "vt" }
 local greek_triggers =
-  { "aa", "bb", "gg", "dd", "ee", "hh", "ta", "ii", "kk", "ll", "mm", "nn", "ww", "ph", "ff", "ps", "rr", "ss", "tt", "cc", "zz" }
+  { "aa", "bb", "gg", "dd", "ee", "hh", "ta", "ii", "kk", "ll", "mm", "nn", "ww", "ph", "ff", "ps", "rr", "ss", "tt", "cc", "zz", "pp" }
 
 M.latex_command_overrides = latex_command_overrides
 

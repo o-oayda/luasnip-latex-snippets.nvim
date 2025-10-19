@@ -18,16 +18,26 @@ function M.retrieve(is_math)
     end
   end
 
-  local accent_suffixes = {
+  local postfix_suffixes = {
     bar = true,
     und = true,
     dot = true,
     hat = true,
     ora = true,
     ola = true,
+    cal = true,
+    bf = true,
   }
 
   local allow_backslash = function(line_to_cursor, matched_trigger)
+    if
+      line_to_cursor:match("\\%($")
+      or line_to_cursor:match("\\%[$")
+      or line_to_cursor:match("\\%{$")
+    then
+      return false
+    end
+
     if no_backslash(line_to_cursor, matched_trigger) then
       return true
     end
@@ -38,7 +48,7 @@ function M.retrieve(is_math)
     end
 
     suffix = suffix:lower()
-    if not accent_suffixes[suffix] then
+    if not postfix_suffixes[suffix] then
       return false
     end
 
@@ -138,6 +148,39 @@ function M.retrieve(is_math)
         return string.format("\\overleftarrow{%s}", resolve_symbol(snip.captures[1]))
       end, {})
     ),
+    s(
+      {
+        trig = "\\?(%a+)%s*cal",
+        wordTrig = false,
+        regTrig = true,
+        name = "mathcal wrap",
+        priority = 100,
+      },
+      f(function(_, snip)
+        return string.format("\\mathcal{%s}", resolve_symbol(snip.captures[1]))
+      end, {})
+    ),
+    s(
+      {
+        trig = "\\?(%a+)%s*bf",
+        wordTrig = false,
+        regTrig = true,
+        name = "mathbf wrap",
+        priority = 100,
+      },
+      f(function(_, snip)
+        return string.format("\\mathbf{%s}", resolve_symbol(snip.captures[1]))
+      end, {})
+    ),
+    parse_snippet(
+      {
+        trig = "(",
+        wordTrig = false,
+        name = "paren pair",
+        priority = 120,
+      },
+      "(${1:${TM_SELECTED_TEXT}})$0"
+    ),
 
     parse_snippet({ trig = "tp", name = "to the ... power ^{}" }, "^{$1}$0 "),
     parse_snippet({ trig = "rd", name = "to the ... power ^{()}" }, "^{($1)}$0 "),
@@ -184,6 +227,7 @@ function M.retrieve(is_math)
     parse_snippet({ trig = ">>", name = ">>" }, "\\gg"),
     parse_snippet({ trig = "<<", name = "<<" }, "\\ll"),
 
+    parse_snippet({ trig = "tx", name = "text" }, "\\text{$1}$0"),
     parse_snippet({ trig = "stt", name = "text subscript" }, "_\\text{$1} $0"),
     parse_snippet({ trig = "tt", name = "text" }, "\\text{$1}$0"),
 
